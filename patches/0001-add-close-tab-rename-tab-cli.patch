@@ -138,3 +138,37 @@ index 0a9de3999..4167be090 100644
      bool _noCommandsProvided();
      void _resetStateToDefault();
      int _handleExit(const CLI::App& command, const CLI::Error& e);
+diff --git a/src/cascadia/TerminalApp/Resources/en-US/Resources.resw b/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
+index 81ca7d51f..548dadd79 100644
+--- a/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
++++ b/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
+@@ -424,6 +424,29 @@
+   <data name="CmdSavedLayoutArgDesc" xml:space="preserve">
+     <value>This parameter is an internal implementation detail and should not be used.</value>
+   </data>
++  <data name="CmdCloseTabDesc" xml:space="preserve">
++    <value>Close a tab</value>
++  </data>
++  <data name="CmdCTDesc" xml:space="preserve">
++    <value>An alias for the "close-tab" subcommand.</value>
++    <comment>{Locked="\"close-tab\""}</comment>
++  </data>
++  <data name="CmdCloseTabTargetArgDesc" xml:space="preserve">
++    <value>Close the tab at the given index (closes the active tab if omitted)</value>
++  </data>
++  <data name="CmdRenameTabDesc" xml:space="preserve">
++    <value>Rename a tab</value>
++  </data>
++  <data name="CmdRTDesc" xml:space="preserve">
++    <value>An alias for the "rename-tab" subcommand.</value>
++    <comment>{Locked="\"rename-tab\""}</comment>
++  </data>
++  <data name="CmdRenameTabTitleArgDesc" xml:space="preserve">
++    <value>The new title for the tab</value>
++  </data>
++  <data name="CmdRenameTabTargetArgDesc" xml:space="preserve">
++    <value>Rename the tab at the given index (renames the active tab if omitted)</value>
++  </data>
+   <data name="CmdWindowTargetArgDesc" xml:space="preserve">
+     <value>Specify a terminal window to run the given commandline in. "0" always refers to the current window. </value>
+   </data>
