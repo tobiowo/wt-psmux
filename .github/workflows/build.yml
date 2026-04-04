@@ -38,9 +38,6 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
       - name: Apply patches
         shell: pwsh
         run: ./apply-patches.ps1
@@ -57,7 +54,11 @@ jobs:
 
       - name: Restore NuGet packages
         working-directory: terminal
-        run: nuget restore OpenConsole.slnx
+        shell: pwsh
+        run: |
+          # Use WT's own bundled nuget.exe (same as Invoke-OpenConsoleBuild in tools/OpenConsole.psm1)
+          & .\dep\nuget\nuget.exe restore OpenConsole.slnx
+          & .\dep\nuget\nuget.exe restore dep\nuget\packages.config
 
       - name: Build WindowsTerminal
         working-directory: terminal
