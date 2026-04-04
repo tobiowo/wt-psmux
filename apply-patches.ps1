@@ -8,6 +8,11 @@ $patchesDir = Join-Path $repoRoot 'patches'
 
 Push-Location $terminalDir
 try {
+    # Ensure files are checked out with LF so our LF-normalized patch applies
+    # consistently regardless of core.autocrlf on the host.
+    git config core.autocrlf false
+    git checkout -- .
+
     foreach ($patch in (Get-ChildItem $patchesDir -Filter '*.patch' | Sort-Object Name)) {
         Write-Host "Applying $($patch.Name)..." -ForegroundColor Cyan
         git apply --check $patch.FullName
