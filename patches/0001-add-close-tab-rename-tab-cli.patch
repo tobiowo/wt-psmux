@@ -1,0 +1,127 @@
+diff --git a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
+index c41eea543..d5c268436 100644
+--- a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
++++ b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
+@@ -209,6 +209,8 @@ void AppCommandlineArgs::_buildParser()
+     _buildSwapPaneParser();
+     _buildFocusPaneParser();
+     _buildSaveSnippetParser();
++    _buildCloseTabParser();
++    _buildRenameTabParser();
+ }
+ 
+ // Method Description:
+@@ -766,6 +768,10 @@ bool AppCommandlineArgs::_noCommandsProvided()
+ {
+     return !(*_newTabCommand.subcommand ||
+              *_newTabShort.subcommand ||
++             *_closeTabCommand ||
++             *_closeTabShort ||
++             *_renameTabCommand ||
++             *_renameTabShort ||
+              *_focusTabCommand ||
+              *_focusTabShort ||
+              *_moveFocusCommand ||
+@@ -815,6 +821,9 @@ void AppCommandlineArgs::_resetStateToDefault()
+     _focusPaneTarget = -1;
+     _loadPersistedLayoutIdx = -1;
+ 
++    _closeTabIndex = -1;
++    _renameTabTitle.clear();
++
+     // DON'T clear _launchMode here! This will get called once for every
+     // subcommand, so we don't want `wt -F new-tab ; split-pane` clearing out
+     // the "global" fullscreen flag (-F).
+@@ -1180,3 +1189,59 @@ std::string_view AppCommandlineArgs::GetTargetWindow() const noexcept
+ {
+     return _windowTarget;
+ }
++
++// Method Description:
++// - Adds the `close-tab` subcommand and related options to the commandline parser.
++// - Additionally adds the `ct` subcommand, which is a shortened version of `close-tab`.
++void AppCommandlineArgs::_buildCloseTabParser()
++{
++    _closeTabCommand = _app.add_subcommand("close-tab", RS_A(L"CmdCloseTabDesc"));
++    _closeTabShort = _app.add_subcommand("ct", RS_A(L"CmdCTDesc"));
++
++    auto setupSubcommand = [this](auto* subcommand) {
++        subcommand->add_option("-t,--target",
++                               _closeTabIndex,
++                               RS_A(L"CmdCloseTabTargetArgDesc"));
++
++        subcommand->callback([&, this]() {
++            ActionAndArgs closeTabAction{};
++            closeTabAction.Action(ShortcutAction::CloseTab);
++            if (_closeTabIndex >= 0)
++            {
++                CloseTabArgs args{ static_cast<uint32_t>(_closeTabIndex) };
++                closeTabAction.Args(args);
++            }
++            _startupActions.push_back(closeTabAction);
++        });
++    };
++
++    setupSubcommand(_closeTabCommand);
++    setupSubcommand(_closeTabShort);
++}
++
++// Method Description:
++// - Adds the `rename-tab` subcommand and related options to the commandline parser.
++// - Additionally adds the `rt` subcommand, which is a shortened version of `rename-tab`.
++void AppCommandlineArgs::_buildRenameTabParser()
++{
++    _renameTabCommand = _app.add_subcommand("rename-tab", RS_A(L"CmdRenameTabDesc"));
++    _renameTabShort = _app.add_subcommand("rt", RS_A(L"CmdRTDesc"));
++
++    auto setupSubcommand = [this](auto* subcommand) {
++        subcommand->add_option("title",
++                               _renameTabTitle,
++                               RS_A(L"CmdRenameTabTitleArgDesc"));
++
++        subcommand->callback([&, this]() {
++            ActionAndArgs renameTabAction{};
++            renameTabAction.Action(ShortcutAction::RenameTab);
++            winrt::hstring title{ winrt::to_hstring(_renameTabTitle) };
++            RenameTabArgs args{ title };
++            renameTabAction.Args(args);
++            _startupActions.push_back(renameTabAction);
++        });
++    };
++
++    setupSubcommand(_renameTabCommand);
++    setupSubcommand(_renameTabShort);
++}
+diff --git a/src/cascadia/TerminalApp/AppCommandlineArgs.h b/src/cascadia/TerminalApp/AppCommandlineArgs.h
+index 0a9de3999..4167be090 100644
+--- a/src/cascadia/TerminalApp/AppCommandlineArgs.h
++++ b/src/cascadia/TerminalApp/AppCommandlineArgs.h
+@@ -93,6 +93,10 @@ private:
+     CLI::App* _focusPaneCommand;
+     CLI::App* _focusPaneShort;
+     CLI::App* _saveCommand;
++    CLI::App* _closeTabCommand;
++    CLI::App* _closeTabShort;
++    CLI::App* _renameTabCommand;
++    CLI::App* _renameTabShort;
+ 
+     // Are you adding a new sub-command? Make sure to update _noCommandsProvided!
+ 
+@@ -125,6 +129,8 @@ private:
+     int _focusPaneTarget{ -1 };
+     std::string _saveInputName;
+     std::string _keyChordOption;
++    int _closeTabIndex{ -1 };
++    std::string _renameTabTitle{};
+     // Are you adding more args here? Make sure to reset them in _resetStateToDefault
+ 
+     const Commandline* _currentCommandline{ nullptr };
+@@ -150,6 +156,8 @@ private:
+     void _buildMovePaneParser();
+     void _buildSwapPaneParser();
+     void _buildFocusPaneParser();
++    void _buildCloseTabParser();
++    void _buildRenameTabParser();
+     bool _noCommandsProvided();
+     void _resetStateToDefault();
+     int _handleExit(const CLI::App& command, const CLI::Error& e);
