@@ -60,26 +60,15 @@ jobs:
           & .\dep\nuget\nuget.exe restore OpenConsole.slnx
           & .\dep\nuget\nuget.exe restore dep\nuget\packages.config
 
-      - name: Build WindowsTerminal
+      - name: Build
         working-directory: terminal
         run: |
-          msbuild src\cascadia\WindowsTerminal\WindowsTerminal.vcxproj `
+          # Build via solution so MSBuild resolves WinRT code-gen dependencies
+          # before compiling WindowsTerminal and wt.
+          msbuild OpenConsole.slnx `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
-            /p:SolutionDir="${{ github.workspace }}\terminal\" `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
-            /p:BuildProjectReferences=true `
-            /m /v:minimal
-
-      - name: Build wt shim
-        working-directory: terminal
-        run: |
-          msbuild src\cascadia\wt\wt.vcxproj `
-            /p:Platform=${{ matrix.platform }} `
-            /p:Configuration=Release `
-            /p:SolutionDir="${{ github.workspace }}\terminal\" `
-            /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
-            /p:BuildProjectReferences=false `
             /m /v:minimal
 
       - name: Upload artifacts
@@ -87,8 +76,8 @@ jobs:
         with:
           name: wt-psmux-${{ matrix.platform }}
           path: |
-            terminal/bin/${{ matrix.platform }}/Release/WindowsTerminal.exe
-            terminal/bin/${{ matrix.platform }}/Release/wt.exe
+            terminal/${{ matrix.platform }}/Release/WindowsTerminal.exe
+            terminal/${{ matrix.platform }}/Release/wt.exe
 
   release:
     name: Create release
