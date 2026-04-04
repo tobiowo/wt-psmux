@@ -55,6 +55,7 @@ jobs:
           msbuild src\cascadia\WindowsTerminal\WindowsTerminal.vcxproj `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
+            /p:SolutionDir="${{ github.workspace }}\terminal\" `
             /p:BuildProjectReferences=true `
             /m /v:minimal
 
@@ -64,6 +65,7 @@ jobs:
           msbuild src\cascadia\wt\wt.vcxproj `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
+            /p:SolutionDir="${{ github.workspace }}\terminal\" `
             /p:BuildProjectReferences=false `
             /m /v:minimal
 
@@ -83,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: false  # don't need submodule for release step
+          submodules: true  # need terminal submodule to read its version tag
 
       - uses: actions/download-artifact@v4
         with:
@@ -92,8 +94,8 @@ jobs:
       - name: Get terminal version
         id: version
         run: |
-          cd terminal
-          echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+          tag=$(git -C terminal describe --tags --abbrev=0 2>/dev/null || echo "unknown")
+          echo "tag=$tag" >> $GITHUB_OUTPUT
 
       - name: Create release
         uses: softprops/action-gh-release@v2
