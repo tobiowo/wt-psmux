@@ -1,5 +1,5 @@
 diff --git a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
-index c41eea543..d5c268436 100644
+index c41eea543..a460c69e5 100644
 --- a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
 +++ b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
 @@ -209,6 +209,8 @@ void AppCommandlineArgs::_buildParser()
@@ -32,7 +32,7 @@ index c41eea543..d5c268436 100644
      // DON'T clear _launchMode here! This will get called once for every
      // subcommand, so we don't want `wt -F new-tab ; split-pane` clearing out
      // the "global" fullscreen flag (-F).
-@@ -1180,3 +1189,59 @@ std::string_view AppCommandlineArgs::GetTargetWindow() const noexcept
+@@ -1180,3 +1189,72 @@ std::string_view AppCommandlineArgs::GetTargetWindow() const noexcept
  {
      return _windowTarget;
  }
@@ -78,8 +78,21 @@ index c41eea543..d5c268436 100644
 +        subcommand->add_option("title",
 +                               _renameTabTitle,
 +                               RS_A(L"CmdRenameTabTitleArgDesc"));
++        subcommand->add_option("-t,--target",
++                               _closeTabIndex,
++                               RS_A(L"CmdRenameTabTargetArgDesc"));
 +
 +        subcommand->callback([&, this]() {
++            // If a target index is specified, switch to that tab first.
++            // RenameTabArgs has no index field, so we chain SwitchToTab + RenameTab.
++            if (_closeTabIndex >= 0)
++            {
++                ActionAndArgs switchAction{};
++                switchAction.Action(ShortcutAction::SwitchToTab);
++                SwitchToTabArgs switchArgs{ static_cast<uint32_t>(_closeTabIndex) };
++                switchAction.Args(switchArgs);
++                _startupActions.push_back(switchAction);
++            }
 +            ActionAndArgs renameTabAction{};
 +            renameTabAction.Action(ShortcutAction::RenameTab);
 +            winrt::hstring title{ winrt::to_hstring(_renameTabTitle) };
