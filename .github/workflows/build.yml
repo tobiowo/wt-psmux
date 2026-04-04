@@ -45,6 +45,16 @@ jobs:
         shell: pwsh
         run: ./apply-patches.ps1
 
+      - name: Detect Windows SDK version
+        shell: pwsh
+        run: |
+          $sdk = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" |
+            Where-Object { $_.Name -match '10\.0\.\d+' } |
+            Sort-Object Name -Descending |
+            Select-Object -First 1).Name
+          Write-Host "Using Windows SDK: $sdk"
+          "WIN_SDK=$sdk" >> $env:GITHUB_ENV
+
       - name: Restore NuGet packages
         working-directory: terminal
         run: nuget restore OpenConsole.slnx
@@ -56,6 +66,7 @@ jobs:
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
             /p:SolutionDir="${{ github.workspace }}\terminal\" `
+            /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
             /p:BuildProjectReferences=true `
             /m /v:minimal
 
@@ -66,6 +77,7 @@ jobs:
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
             /p:SolutionDir="${{ github.workspace }}\terminal\" `
+            /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
             /p:BuildProjectReferences=false `
             /m /v:minimal
 
