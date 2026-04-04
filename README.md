@@ -58,6 +58,34 @@ When the user closes a Windows Terminal tab directly (rather than through psmux)
 **Index drift.**
 WT tab indices shift when tabs open or close. The daemon must update its mapping table after every event. Race conditions are possible if the user rapidly opens/closes tabs.
 
+## Sync daemon
+
+`psmux-sync.ps1` connects to psmux in control mode and keeps WT tabs in sync with psmux windows.
+
+### Usage
+
+```powershell
+# Basic: assumes WT tabs are already open and in the same order as psmux windows
+./psmux-sync.ps1
+
+# Specific session
+./psmux-sync.ps1 -Session main
+
+# Create WT tabs for all existing psmux windows on startup
+./psmux-sync.ps1 -CreateTabs
+
+# Target a specific WT window (default: 0)
+./psmux-sync.ps1 -WtWindow 1
+```
+
+The daemon maintains an `@windowId → tab index` map and updates it on every add/close event. It handles the initial name assignment by buffering `%window-add` events until the first `%window-renamed` fires (which psmux sends immediately after creation with the initial window name).
+
+### Startup modes
+
+**Default** (`-CreateTabs` not set): the daemon assumes WT already has tabs open that correspond to the current psmux windows, in the same order. Use this if you opened WT and psmux together and they're already in sync.
+
+**`-CreateTabs`**: on startup, the daemon creates a new WT tab for each existing psmux window. Use this when psmux is already running with sessions you want to mirror into fresh WT tabs.
+
 ## Project structure
 
 ```
@@ -65,6 +93,7 @@ wt-psmux/
   terminal/                               ← microsoft/terminal submodule (unmodified)
   patches/
     0001-add-close-tab-rename-tab-cli.patch  ← the only change to WT source
+  psmux-sync.ps1                          ← sync daemon: maps psmux window events to wt commands
   apply-patches.ps1                       ← applies patches, fails loudly if upstream changed
   build.ps1                               ← builds patched binaries locally
   .github/workflows/build.yml             ← CI: verify + build + release on push; weekly patch check
