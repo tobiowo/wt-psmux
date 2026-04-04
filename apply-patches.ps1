@@ -8,19 +8,16 @@ $patchesDir = Join-Path $repoRoot 'patches'
 
 Push-Location $terminalDir
 try {
-    # Ensure files are checked out with LF so our LF-normalized patch applies
-    # consistently regardless of core.autocrlf on the host.
-    git config core.autocrlf false
-    git checkout -- .
-
     foreach ($patch in (Get-ChildItem $patchesDir -Filter '*.patch' | Sort-Object Name)) {
         Write-Host "Applying $($patch.Name)..." -ForegroundColor Cyan
-        git apply --check $patch.FullName
+        # --ignore-whitespace makes git treat \r as trailing whitespace, so a
+        # LF patch applies cleanly against CRLF files (and vice versa).
+        git apply --ignore-whitespace --check $patch.FullName
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Patch $($patch.Name) does not apply cleanly. The upstream terminal repo may have changed."
             exit 1
         }
-        git apply $patch.FullName
+        git apply --ignore-whitespace $patch.FullName
         Write-Host "  OK" -ForegroundColor Green
     }
 } finally {
