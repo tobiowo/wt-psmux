@@ -1,5 +1,47 @@
+diff --git a/src/cascadia/TerminalApp/AppActionHandlers.cpp b/src/cascadia/TerminalApp/AppActionHandlers.cpp
+index 66372a3e9..d5157503b 100644
+--- a/src/cascadia/TerminalApp/AppActionHandlers.cpp
++++ b/src/cascadia/TerminalApp/AppActionHandlers.cpp
+@@ -722,21 +722,34 @@ namespace winrt::TerminalApp::implementation
+                                         const ActionEventArgs& args)
+     {
+         std::optional<winrt::hstring> title;
++        winrt::com_ptr<Tab> targetTab{ nullptr };
+ 
+         if (const auto& realArgs = args.ActionArgs().try_as<RenameTabArgs>())
+         {
+             title = realArgs.Title();
++            if (const auto& idx = realArgs.Index())
++            {
++                const auto tabIdx = idx.Value();
++                if (tabIdx < _tabs.Size())
++                {
++                    targetTab = _GetTabImpl(_tabs.GetAt(tabIdx));
++                }
++            }
++        }
++        if (!targetTab)
++        {
++            targetTab = _senderOrFocusedTab(sender);
+         }
+ 
+-        if (const auto activeTab{ _senderOrFocusedTab(sender) })
++        if (targetTab)
+         {
+             if (title.has_value())
+             {
+-                activeTab->SetTabText(title.value());
++                targetTab->SetTabText(title.value());
+             }
+             else
+             {
+-                activeTab->ResetTabText();
++                targetTab->ResetTabText();
+             }
+         }
+         args.Handled(true);
 diff --git a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
-index c41eea543..a460c69e5 100644
+index c41eea543..6f5a17338 100644
 --- a/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
 +++ b/src/cascadia/TerminalApp/AppCommandlineArgs.cpp
 @@ -209,6 +209,8 @@ void AppCommandlineArgs::_buildParser()
@@ -32,7 +74,7 @@ index c41eea543..a460c69e5 100644
      // DON'T clear _launchMode here! This will get called once for every
      // subcommand, so we don't want `wt -F new-tab ; split-pane` clearing out
      // the "global" fullscreen flag (-F).
-@@ -1180,3 +1189,72 @@ std::string_view AppCommandlineArgs::GetTargetWindow() const noexcept
+@@ -1180,3 +1189,66 @@ std::string_view AppCommandlineArgs::GetTargetWindow() const noexcept
  {
      return _windowTarget;
  }
@@ -83,20 +125,14 @@ index c41eea543..a460c69e5 100644
 +                               RS_A(L"CmdRenameTabTargetArgDesc"));
 +
 +        subcommand->callback([&, this]() {
-+            // If a target index is specified, switch to that tab first.
-+            // RenameTabArgs has no index field, so we chain SwitchToTab + RenameTab.
-+            if (_closeTabIndex >= 0)
-+            {
-+                ActionAndArgs switchAction{};
-+                switchAction.Action(ShortcutAction::SwitchToTab);
-+                SwitchToTabArgs switchArgs{ static_cast<uint32_t>(_closeTabIndex) };
-+                switchAction.Args(switchArgs);
-+                _startupActions.push_back(switchAction);
-+            }
 +            ActionAndArgs renameTabAction{};
 +            renameTabAction.Action(ShortcutAction::RenameTab);
 +            winrt::hstring title{ winrt::to_hstring(_renameTabTitle) };
 +            RenameTabArgs args{ title };
++            if (_closeTabIndex >= 0)
++            {
++                args.Index(static_cast<uint32_t>(_closeTabIndex));
++            }
 +            renameTabAction.Args(args);
 +            _startupActions.push_back(renameTabAction);
 +        });
@@ -106,7 +142,7 @@ index c41eea543..a460c69e5 100644
 +    setupSubcommand(_renameTabShort);
 +}
 diff --git a/src/cascadia/TerminalApp/AppCommandlineArgs.h b/src/cascadia/TerminalApp/AppCommandlineArgs.h
-index 0a9de3999..4167be090 100644
+index 0a9de3999..4b32ba7d6 100644
 --- a/src/cascadia/TerminalApp/AppCommandlineArgs.h
 +++ b/src/cascadia/TerminalApp/AppCommandlineArgs.h
 @@ -93,6 +93,10 @@ private:
@@ -139,7 +175,7 @@ index 0a9de3999..4167be090 100644
      void _resetStateToDefault();
      int _handleExit(const CLI::App& command, const CLI::Error& e);
 diff --git a/src/cascadia/TerminalApp/Resources/en-US/Resources.resw b/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
-index 81ca7d51f..548dadd79 100644
+index 81ca7d51f..2fcf3d486 100644
 --- a/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
 +++ b/src/cascadia/TerminalApp/Resources/en-US/Resources.resw
 @@ -424,6 +424,29 @@
@@ -172,3 +208,29 @@ index 81ca7d51f..548dadd79 100644
    <data name="CmdWindowTargetArgDesc" xml:space="preserve">
      <value>Specify a terminal window to run the given commandline in. "0" always refers to the current window. </value>
    </data>
+diff --git a/src/cascadia/TerminalSettingsModel/ActionArgs.h b/src/cascadia/TerminalSettingsModel/ActionArgs.h
+index 45ba2cb14..848d10a85 100644
+--- a/src/cascadia/TerminalSettingsModel/ActionArgs.h
++++ b/src/cascadia/TerminalSettingsModel/ActionArgs.h
+@@ -170,7 +170,8 @@ protected:                                                                  \
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+ #define RENAME_TAB_ARGS(X) \
+-    X(winrt::hstring, Title, "title", false, ArgTypeHint::None, L"")
++    X(winrt::hstring, Title, "title", false, ArgTypeHint::None, L"") \
++    X(Windows::Foundation::IReference<uint32_t>, Index, "index", false, ArgTypeHint::None, nullptr)
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+ #define EXECUTE_COMMANDLINE_ARGS(X) \
+diff --git a/src/cascadia/TerminalSettingsModel/ActionArgs.idl b/src/cascadia/TerminalSettingsModel/ActionArgs.idl
+index 67c241e23..e81db47e9 100644
+--- a/src/cascadia/TerminalSettingsModel/ActionArgs.idl
++++ b/src/cascadia/TerminalSettingsModel/ActionArgs.idl
+@@ -312,6 +312,7 @@ namespace Microsoft.Terminal.Settings.Model
+     {
+         RenameTabArgs(String title);
+         String Title { get; };
++        Windows.Foundation.IReference<UInt32> Index { get; };
+     };
+ 
+     [default_interface] runtimeclass ExecuteCommandlineArgs : IActionArgs, IActionArgsDescriptorAccess
