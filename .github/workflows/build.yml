@@ -25,7 +25,7 @@ jobs:
   build:
     name: Build (${{ matrix.platform }})
     needs: check-patch
-    runs-on: windows-latest
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -43,14 +43,23 @@ jobs:
         shell: pwsh
         run: ./apply-patches.ps1
 
-      - name: Install Windows SDK 10.0.22621.0
+      - name: Select Windows SDK version
         shell: pwsh
         run: |
-          # SDK 26100 ships with a broken XAML compiler (WMC9999 on WT's SettingsEditor).
-          # Install SDK 22621 which has a working XAML compiler.
-          winget install --id Microsoft.WindowsSDK.10.0.22621 --silent `
-            --accept-package-agreements --accept-source-agreements
-          "WIN_SDK=10.0.22621.0" >> $env:GITHUB_ENV
+          # SDK 26100 has a broken XAML compiler (WMC9999) for WT's SettingsEditor.
+          # Prefer the highest SDK <= 22621; fall back to whatever is available.
+          $all = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" |
+            Where-Object { $_.Name -match '10\.0\.\d+' } |
+            Sort-Object Name -Descending
+          Write-Host "All available SDKs: $($all.Name -join ', ')"
+          $sdk = ($all | Where-Object { [Version]$_.Name -le [Version]"10.0.22621.0" } |
+            Select-Object -First 1).Name
+          if (-not $sdk) {
+            $sdk = ($all | Select-Object -First 1).Name
+            Write-Warning "No SDK <= 22621 found; using $sdk (XAML compiler may fail)"
+          }
+          Write-Host "Selected SDK: $sdk"
+          "WIN_SDK=$sdk" >> $env:GITHUB_ENV
 
       - name: Restore NuGet packages
         working-directory: terminal
