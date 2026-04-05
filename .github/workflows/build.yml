@@ -63,11 +63,12 @@ jobs:
       - name: Build
         working-directory: terminal
         run: |
-          # Build via solution so MSBuild resolves WinRT code-gen dependencies
-          # before compiling WindowsTerminal and wt.
-          # /restore handles SDK-style (PackageReference) projects;
-          # the nuget.exe restore above handles legacy packages.config C++ projects.
+          # Build specific targets via the solution so MSBuild resolves the full
+          # WinRT code-gen dependency chain without building the MSIX packaging
+          # project (CascadiaPackage.wapproj) which requires signing certs.
+          # Target names derived from project paths: \ -> _, extension dropped.
           msbuild OpenConsole.slnx /restore `
+            /t:src_cascadia_WindowsTerminal_WindowsTerminal`;src_cascadia_wt_wt `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
