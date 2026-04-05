@@ -27,6 +27,7 @@ jobs:
     needs: check-patch
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         platform: [x64, arm64]
 
@@ -62,17 +63,25 @@ jobs:
 
       - name: Build
         working-directory: terminal
+        shell: pwsh
         run: |
-          # Build specific targets via the solution so MSBuild resolves the full
-          # WinRT code-gen dependency chain without building the MSIX packaging
-          # project (CascadiaPackage.wapproj) which requires signing certs.
-          # Target names derived from project paths: \ -> _, extension dropped.
+          # Build via the full solution so MSBuild resolves the WinRT code-gen
+          # dependency chain in the correct order.
+          # CascadiaPackage.wapproj (MSIX packaging) will fail in CI because it
+          # needs signing certs — that's expected. We check for the actual
+          # binaries to determine success.
           msbuild OpenConsole.slnx /restore `
-            /t:src_cascadia_WindowsTerminal_WindowsTerminal`;src_cascadia_wt_wt `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
             /m /v:minimal
+          $wtExe       = "${{ matrix.platform }}\Release\wt.exe"
+          $terminalExe = "${{ matrix.platform }}\Release\WindowsTerminal.exe"
+          if (-not (Test-Path $wtExe) -or -not (Test-Path $terminalExe)) {
+              Write-Error "Critical binaries not found: $wtExe / $terminalExe"
+              exit 1
+          }
+          Write-Host "OK: $wtExe and $terminalExe built successfully"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
