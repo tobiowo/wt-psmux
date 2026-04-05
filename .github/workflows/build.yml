@@ -43,15 +43,14 @@ jobs:
         shell: pwsh
         run: ./apply-patches.ps1
 
-      - name: Detect Windows SDK version
+      - name: Install Windows SDK 10.0.22621.0
         shell: pwsh
         run: |
-          $sdk = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" |
-            Where-Object { $_.Name -match '10\.0\.\d+' } |
-            Sort-Object Name -Descending |
-            Select-Object -First 1).Name
-          Write-Host "Using Windows SDK: $sdk"
-          "WIN_SDK=$sdk" >> $env:GITHUB_ENV
+          # SDK 26100 ships with a broken XAML compiler (WMC9999 on WT's SettingsEditor).
+          # Install SDK 22621 which has a working XAML compiler.
+          winget install --id Microsoft.WindowsSDK.10.0.22621 --silent `
+            --accept-package-agreements --accept-source-agreements
+          "WIN_SDK=10.0.22621.0" >> $env:GITHUB_ENV
 
       - name: Restore NuGet packages
         working-directory: terminal
