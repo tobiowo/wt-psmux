@@ -76,6 +76,9 @@ jobs:
             /p:Configuration=Release `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
             /m /v:minimal
+          Write-Host "=== bin directory contents ==="
+          Get-ChildItem -Recurse "bin\${{ matrix.platform }}" -Filter "*.exe" -ErrorAction SilentlyContinue |
+            Select-Object FullName, Length | Format-Table -AutoSize
           $wtExe       = "bin\${{ matrix.platform }}\Release\wt.exe"
           $terminalExe = "bin\${{ matrix.platform }}\Release\WindowsTerminal.exe"
           if (-not (Test-Path $wtExe) -or -not (Test-Path $terminalExe)) {
