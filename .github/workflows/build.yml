@@ -12,7 +12,7 @@ on:
 jobs:
   check-patch:
     name: Verify patch applies cleanly
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
   build:
     name: Build (${{ matrix.platform }})
     needs: check-patch
-    runs-on: windows-2022
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
