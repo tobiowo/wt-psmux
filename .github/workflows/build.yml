@@ -84,24 +84,27 @@ jobs:
             /p:Configuration=Release `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
             /m /v:minimal
+          # arm64 matrix label → ARM64 in MSBuild output path
+          $plat = if ("${{ matrix.platform }}" -eq "arm64") { "ARM64" } else { "${{ matrix.platform }}" }
           Write-Host "=== bin directory contents ==="
-          Get-ChildItem -Recurse "bin\${{ matrix.platform }}" -Filter "*.exe" -ErrorAction SilentlyContinue |
+          Get-ChildItem -Recurse "bin\$plat" -Filter "*.exe" -ErrorAction SilentlyContinue |
             Select-Object FullName, Length | Format-Table -AutoSize
-          $wtExe       = "bin\${{ matrix.platform }}\Release\wt.exe"
-          $terminalExe = "bin\${{ matrix.platform }}\Release\WindowsTerminal.exe"
+          $wtExe       = "bin\$plat\Release\wt.exe"
+          $terminalExe = "bin\$plat\Release\WindowsTerminal\WindowsTerminal.exe"
           if (-not (Test-Path $wtExe) -or -not (Test-Path $terminalExe)) {
               Write-Error "Critical binaries not found after build"
               exit 1
           }
           Write-Host "OK: $wtExe and $terminalExe built successfully"
+          "OUTPUT_PLATFORM=$plat" >> $env:GITHUB_ENV
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wt-psmux-${{ matrix.platform }}
           path: |
-            terminal/bin/${{ matrix.platform }}/Release/WindowsTerminal.exe
-            terminal/bin/${{ matrix.platform }}/Release/wt.exe
+            terminal/bin/${{ env.OUTPUT_PLATFORM }}/Release/WindowsTerminal/WindowsTerminal.exe
+            terminal/bin/${{ env.OUTPUT_PLATFORM }}/Release/wt.exe
 
   release:
     name: Create release
