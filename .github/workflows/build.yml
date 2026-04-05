@@ -129,6 +129,19 @@ jobs:
           tag=$(git -C terminal describe --tags --abbrev=0 2>/dev/null || echo "unknown")
           echo "tag=$tag" >> $GITHUB_OUTPUT
 
+      - name: Rename artifacts by platform
+        run: |
+          # artifacts/wt-psmux-<platform>/**/*.exe → flat files named <name>-<platform>.exe
+          mkdir -p release-files
+          for dir in artifacts/wt-psmux-*/; do
+            platform=$(basename "$dir" | sed 's/wt-psmux-//')
+            find "$dir" -name "*.exe" | while read f; do
+              base=$(basename "$f" .exe)
+              cp "$f" "release-files/${base}-${platform}.exe"
+            done
+          done
+          ls -la release-files/
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -139,8 +152,8 @@ jobs:
 
             **Changes over upstream:**
             - `wt close-tab [-t <index>]` — close a tab by index (or the active tab)
-            - `wt rename-tab <title>` — rename a tab by sending a title to the active tab
+            - `wt rename-tab [-t <index>] <title>` — rename a tab by index (or the active tab)
 
             **Usage:**
-            Drop `WindowsTerminal.exe` and `wt.exe` into your Windows Terminal installation directory.
-          files: artifacts/**/*.exe
+            Drop `WindowsTerminal-x64.exe` and `wt-x64.exe` (or the `arm64` variants) into your Windows Terminal installation directory, renaming them to `WindowsTerminal.exe` and `wt.exe`.
+          files: release-files/*.exe
