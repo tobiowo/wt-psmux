@@ -18,11 +18,16 @@ param(
 $here = $PSScriptRoot
 
 # Check if session already exists
-$existing = & psmux has-session -t $Session 2>$null
+& psmux has-session -t $Session 2>$null
 $sessionExists = $LASTEXITCODE -eq 0
 
-# Start sync daemon in background. Use -CreateTabs only for fresh sessions
-# so we don't duplicate tabs when re-attaching.
+# For a new session: create it detached first so the daemon can connect to it.
+# For an existing session: daemon attaches to what's already there.
+if (-not $sessionExists) {
+    & psmux new-session -d -s $Session
+}
+
+# Start sync daemon in background. Use -CreateTabs only for fresh sessions.
 $syncArgs = @(
     "-File", "$here\psmux-sync.ps1",
     "-Session", $Session,
@@ -33,16 +38,11 @@ if (-not $sessionExists) {
 }
 
 $daemon = Start-Process pwsh -ArgumentList $syncArgs -PassThru -WindowStyle Hidden
-
 Write-Host "psmux-sync started (pid $($daemon.Id))"
 
 try {
-    # Attach (or create and attach)
-    if ($sessionExists) {
-        & psmux attach-session -t $Session
-    } else {
-        & psmux new-session -s $Session
-    }
+    # Attach to the session (now guaranteed to exist)
+    & psmux attach-session -t $Session
 } finally {
     # Clean up daemon when psmux exits
     if (-not $daemon.HasExited) {

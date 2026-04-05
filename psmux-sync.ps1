@@ -49,9 +49,9 @@ function Invoke-Wt([string[]]$WtArgs) {
 }
 
 function Open-WtTab([string]$Title) {
-    $args = @("nt", "--suppressApplicationTitle")
-    if ($Title) { $args += @("--title", $Title) }
-    Invoke-Wt $args
+    $tabArgs = @("nt", "--suppressApplicationTitle")
+    if ($Title) { $tabArgs += @("--title", $Title) }
+    Invoke-Wt $tabArgs
 }
 
 function Close-WtTab([int]$Index) {
@@ -154,8 +154,13 @@ Write-Host "Attaching to psmux control mode ($($windowOrder.Count) window(s) map
 Write-Host "Press Ctrl+C to stop."
 Write-Host ""
 
-$ccArgs = @("-CC")
-if ($Session) { $ccArgs = @("-t", $Session) + $ccArgs }
+# psmux -CC [attach-session -t <session>]
+# -CC must be the first argument; session target goes in the subcommand
+if ($Session) {
+    $ccArgs = @("-CC", "attach-session", "-t", $Session)
+} else {
+    $ccArgs = @("-CC")
+}
 
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = "psmux"

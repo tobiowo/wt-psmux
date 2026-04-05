@@ -65,7 +65,9 @@ jobs:
         run: |
           # Build via solution so MSBuild resolves WinRT code-gen dependencies
           # before compiling WindowsTerminal and wt.
-          msbuild OpenConsole.slnx `
+          # /restore handles SDK-style (PackageReference) projects;
+          # the nuget.exe restore above handles legacy packages.config C++ projects.
+          msbuild OpenConsole.slnx /restore `
             /p:Platform=${{ matrix.platform }} `
             /p:Configuration=Release `
             /p:WindowsTargetPlatformVersion=${{ env.WIN_SDK }} `
