@@ -209,19 +209,22 @@ index 81ca7d51f..2fcf3d486 100644
      <value>Specify a terminal window to run the given commandline in. "0" always refers to the current window. </value>
    </data>
 diff --git a/src/cascadia/TerminalSettingsModel/ActionArgs.h b/src/cascadia/TerminalSettingsModel/ActionArgs.h
-index 45ba2cb14..848d10a85 100644
+index 45ba2cb14..f6145969b 100644
 --- a/src/cascadia/TerminalSettingsModel/ActionArgs.h
 +++ b/src/cascadia/TerminalSettingsModel/ActionArgs.h
-@@ -170,7 +170,8 @@ protected:                                                                  \
+@@ -906,7 +906,11 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
  
- ////////////////////////////////////////////////////////////////////////////////
- #define RENAME_TAB_ARGS(X) \
--    X(winrt::hstring, Title, "title", false, ArgTypeHint::None, L"")
-+    X(winrt::hstring, Title, "title", false, ArgTypeHint::None, L"") \
-+    X(Windows::Foundation::IReference<uint32_t>, Index, "index", false, ArgTypeHint::None, nullptr)
+     ACTION_ARGS_STRUCT(SetTabColorArgs, SET_TAB_COLOR_ARGS);
  
- ////////////////////////////////////////////////////////////////////////////////
- #define EXECUTE_COMMANDLINE_ARGS(X) \
+-    ACTION_ARGS_STRUCT(RenameTabArgs, RENAME_TAB_ARGS);
++    struct RenameTabArgs : public RenameTabArgsT<RenameTabArgs>
++    {
++        ACTION_ARG_BODY(RenameTabArgs, RENAME_TAB_ARGS)
++        ACTION_ARG(Windows::Foundation::IReference<uint32_t>, Index, nullptr);
++    };
+ 
+     ACTION_ARGS_STRUCT(ExecuteCommandlineArgs, EXECUTE_COMMANDLINE_ARGS);
+ 
 diff --git a/src/cascadia/TerminalSettingsModel/ActionArgs.idl b/src/cascadia/TerminalSettingsModel/ActionArgs.idl
 index 67c241e23..e81db47e9 100644
 --- a/src/cascadia/TerminalSettingsModel/ActionArgs.idl
