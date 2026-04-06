@@ -226,14 +226,14 @@ index 45ba2cb14..f6145969b 100644
      ACTION_ARGS_STRUCT(ExecuteCommandlineArgs, EXECUTE_COMMANDLINE_ARGS);
  
 diff --git a/src/cascadia/TerminalSettingsModel/ActionArgs.idl b/src/cascadia/TerminalSettingsModel/ActionArgs.idl
-index 67c241e23..e81db47e9 100644
+index 67c241e23..71c17d7f4 100644
 --- a/src/cascadia/TerminalSettingsModel/ActionArgs.idl
 +++ b/src/cascadia/TerminalSettingsModel/ActionArgs.idl
 @@ -312,6 +312,7 @@ namespace Microsoft.Terminal.Settings.Model
      {
          RenameTabArgs(String title);
          String Title { get; };
-+        Windows.Foundation.IReference<UInt32> Index { get; };
++        Windows.Foundation.IReference<UInt32> Index;
      };
  
      [default_interface] runtimeclass ExecuteCommandlineArgs : IActionArgs, IActionArgsDescriptorAccess
